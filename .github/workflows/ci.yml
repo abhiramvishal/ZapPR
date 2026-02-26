@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd services/api
+          pip install -r requirements.txt
+          pip install bandit mypy
+
+      - name: Run tests
+        run: |
+          cd services/api
+          pytest tests -v
+
+      - name: Bandit (SAST)
+        run: |
+          cd services/api
+          bandit -r app -ll
+
+      - name: Mypy
+        run: |
+          cd services/api
+          mypy app --ignore-missing-imports || true
