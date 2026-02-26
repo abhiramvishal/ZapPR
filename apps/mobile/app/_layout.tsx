@@ -1,13 +1,13 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import * as SecureStore from "expo-secure-store";
+import { storage } from "@/lib/storage";
 
 export default function RootLayout() {
   const [hasToken, setHasToken] = useState<boolean | null>(null);
 
   useEffect(() => {
-    SecureStore.getItemAsync("jwt").then((t) => setHasToken(!!t));
+    storage.getItemAsync("jwt").then((t) => setHasToken(!!t));
   }, []);
 
   return (

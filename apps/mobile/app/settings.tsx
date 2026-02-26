@@ -8,7 +8,7 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import * as SecureStore from "expo-secure-store";
+import { storage } from "@/lib/storage";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -16,21 +16,21 @@ export default function SettingsScreen() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    SecureStore.getItemAsync("claude_key").then((k) => setClaudeKey(k || ""));
+    storage.getItemAsync("claude_key").then((k) => setClaudeKey(k || ""));
   }, []);
 
   const save = async () => {
     if (claudeKey.trim()) {
-      await SecureStore.setItemAsync("claude_key", claudeKey.trim());
+      await storage.setItemAsync("claude_key", claudeKey.trim());
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } else {
-      await SecureStore.deleteItemAsync("claude_key");
+      await storage.deleteItemAsync("claude_key");
     }
   };
 
   const signOut = async () => {
-    await SecureStore.deleteItemAsync("jwt");
+    await storage.deleteItemAsync("jwt");
     router.replace("/(auth)/sign-in");
   };
 

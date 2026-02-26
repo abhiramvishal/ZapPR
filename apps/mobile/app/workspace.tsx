@@ -11,7 +11,7 @@ import {
   Alert,
   FlatList,
 } from "react-native";
-import * as SecureStore from "expo-secure-store";
+import { storage } from "@/lib/storage";
 import { repos as reposApi, agent as agentApi, TreeEntry } from "@/lib/api";
 import { useRepoStore } from "@/lib/store";
 
@@ -66,7 +66,7 @@ export default function WorkspaceScreen() {
 
   const generatePatch = async () => {
     if (!repo || !branch || !goal.trim()) return;
-    const claudeKey = await SecureStore.getItemAsync("claude_key");
+    const claudeKey = await storage.getItemAsync("claude_key");
     if (!claudeKey) {
       Alert.alert(
         "Claude API Key",

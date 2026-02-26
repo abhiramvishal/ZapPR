@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import * as SecureStore from "expo-secure-store";
+import { storage } from "@/lib/storage";
 import { auth } from "@/lib/api";
 
 export default function SignIn() {
@@ -34,7 +34,7 @@ export default function SignIn() {
           result.params.state || state,
           redirectUri
         );
-        await SecureStore.setItemAsync("jwt", access_token);
+        await storage.setItemAsync("jwt", access_token);
         router.replace("/(tabs)/repos");
       } else if (result.type === "error") {
         Alert.alert("Error", result.error?.message || "Sign in failed");

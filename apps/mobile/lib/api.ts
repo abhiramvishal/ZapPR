@@ -1,9 +1,9 @@
-import * as SecureStore from "expo-secure-store";
+import { storage } from "./storage";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
 async function getToken(): Promise<string | null> {
-  return SecureStore.getItemAsync("jwt");
+  return storage.getItemAsync("jwt");
 }
 
 export async function api<T>(
