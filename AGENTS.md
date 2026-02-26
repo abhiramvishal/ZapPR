@@ -28,7 +28,6 @@ See the CI config in `.github/workflows/ci.yml` for the canonical test/lint comm
 
 ### Gotchas
 
-- `requirements.txt` pins `pytest==8.0.0` and `pytest-asyncio==0.23.4`, which conflict. Install with `pytest>=7.0,<8` instead to resolve.
 - Alembic's `env.py` has a driver mismatch (sets a sync URL but uses `async_engine_from_config`). The app's lifespan auto-creates tables, so you can skip `alembic upgrade head` for local dev.
 - The mobile app has pre-existing TypeScript type errors (TS2339, TS2322 in `lib/api.ts` and `app/(auth)/sign-in.tsx`). `npx tsc --noEmit` will report errors but the Expo bundler still works.
 - The mobile app is iOS/Android only; `expo export --platform web` requires additional deps (`react-native-web`, `react-dom`) that are not in the project.
