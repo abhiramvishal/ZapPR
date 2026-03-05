@@ -1,64 +1,74 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  PanResponder,
 } from "react-native";
-import { Octicons } from "@expo/vector-icons";
-import { useRepoStore } from "../lib/store";
-import { patchApi } from "../lib/api";
-import { Colors, Spacing, Typography } from "../lib/theme";
-import { TerminalText } from "../components/TerminalText";
-import { Button } from "../components/Button";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRepoStore } from "@/lib/store";
+import { patchApi } from "@/lib/api";
+import { Colors, Spacing, Typography } from "@/lib/theme";
+import { DiffHunk } from "@/components/DiffHunk";
+import { Button } from "@/components/Button";
 
-function DiffLine({ line, index }: { line: string; index: number }) {
-  const isAdd = line.startsWith("+") && !line.startsWith("+++");
-  const isDel = line.startsWith("-") && !line.startsWith("---");
-  const isHeader = line.startsWith("@@") || line.startsWith("index") || line.startsWith("---") || line.startsWith("+++");
+function parsePatchToFiles(patch: string): { path: string; lines: string[] }[] {
+  const files: { path: string; lines: string[] }[] = [];
+  const lines = patch.split("\n");
+  let i = 0;
 
-  const getLineStyle = () => {
-    if (isAdd) return styles.addLine;
-    if (isDel) return styles.delLine;
-    if (isHeader) return styles.headerLine;
-    return {};
-  };
-
-  const getTextColor = () => {
-    if (isAdd) return Colors.success;
-    if (isDel) return Colors.danger;
-    if (isHeader) return Colors.accent;
-    return Colors.textMuted;
-  };
-
-  return (
-    <View style={[styles.lineWrapper, getLineStyle()]}>
-      <Text style={styles.lineNumber}>{index + 1}</Text>
-      <Text style={[styles.codeText, { color: getTextColor() }]}>
-        {line}
-      </Text>
-    </View>
-  );
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.startsWith("--- ")) {
+      const oldPath = line.slice(4).split("\t")[0].trim().replace(/^a\//, "");
+      i++;
+      if (i < lines.length && lines[i].startsWith("+++ ")) {
+        const newPath = lines[i].slice(4).split("\t")[0].trim().replace(/^b\//, "");
+        const path = newPath || oldPath;
+        const fileLines: string[] = [lines[i - 1], lines[i]];
+        i++;
+        while (i < lines.length && !lines[i].startsWith("--- ")) {
+          fileLines.push(lines[i]);
+          i++;
+        }
+        files.push({ path, lines: fileLines });
+      } else {
+        i++;
+      }
+    } else {
+      i++;
+    }
+  }
+  return files;
 }
 
 export default function DiffScreen() {
   const router = useRouter();
-  const { repo, branch, patch } = useRepoStore((s: any) => s);
+  const insets = useSafeAreaInsets();
+  const { repo, branch, patch } = useRepoStore((s) => s);
   const [valid, setValid] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fileIndex, setFileIndex] = useState(0);
+  const [acceptedHunks, setAcceptedHunks] = useState<Set<number>>(new Set());
+
+  const files = useMemo(() => (patch ? parsePatchToFiles(patch) : []), [patch]);
+  const currentFile = files[fileIndex];
+  const allLines = currentFile?.lines ?? [];
 
   const validate = async () => {
     if (!repo || !branch || !patch) return;
     setLoading(true);
+    setError(null);
     try {
       const [owner, repoName] = repo.full_name.split("/");
       const result = await patchApi.validate(owner, repoName, branch.name, patch);
       setValid(result.valid);
-      setError(result.message || null);
+      setError(result.message ?? null);
     } catch (e) {
       setValid(false);
       setError((e as Error).message);
@@ -76,56 +86,79 @@ export default function DiffScreen() {
     return null;
   }
 
-  const lines = patch.split("\n");
-
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
-        <TerminalText style={styles.headerTitle}>
-          {`> git diff --staged`}
-        </TerminalText>
-        <TouchableOpacity
-          style={[styles.validateBadge, valid === true && styles.validBadge, valid === false && styles.invalidBadge]}
-          onPress={validate}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={Colors.text} />
-          ) : (
-            <Text style={styles.badgeText}>
-              {valid === null ? "VALIDATE" : valid ? "VALID" : "INVALID"}
-            </Text>
-          )}
-        </TouchableOpacity>
+        <Text style={styles.fileName} numberOfLines={1}>
+          {currentFile?.path ?? "diff"}
+        </Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.acceptAllBtn} onPress={() => setAcceptedHunks(new Set(allLines.map((_, i) => i)))}>
+            <Text style={styles.headerBtnText}>Accept all</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.rejectAllBtn} onPress={() => setAcceptedHunks(new Set())}>
+            <Text style={styles.headerBtnText}>Reject all</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      <TouchableOpacity
+        style={[styles.validateBadge, valid === true && styles.validBadge, valid === false && styles.invalidBadge]}
+        onPress={validate}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.badgeText}>{valid === null ? "Validate" : valid ? "Valid" : "Invalid"}</Text>
+        )}
+      </TouchableOpacity>
 
       {error && (
         <View style={styles.errorBox}>
-          <Octicons name="alert" size={12} color={Colors.danger} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
 
-      <ScrollView style={styles.diffContainer} contentContainerStyle={styles.diffContent}>
-        {lines.map((line: string, i: number) => (
-          <DiffLine key={i} line={line} index={i} />
-        ))}
-      </ScrollView>
+      <FlatList
+        data={allLines}
+        keyExtractor={(_, i) => String(i)}
+        style={styles.diffList}
+        contentContainerStyle={styles.diffContent}
+        renderItem={({ item, index }) => (
+          <DiffHunk line={item} lineNumber={index + 1} />
+        )}
+      />
 
       <View style={styles.footer}>
-        <Button
-          title="Reject Patch"
-          onPress={() => router.back()}
-          variant="secondary"
-          style={styles.footerBtn}
-        />
-        <Button
-          title="Accept & Commit"
-          onPress={acceptAndContinue}
-          variant="primary"
-          disabled={valid === false}
-          style={styles.footerBtn}
-        />
+        <View style={styles.navRow}>
+          <TouchableOpacity
+            style={[styles.navBtn, fileIndex === 0 && styles.navBtnDisabled]}
+            onPress={() => setFileIndex((i) => Math.max(0, i - 1))}
+            disabled={fileIndex === 0}
+          >
+            <Text style={styles.navBtnText}>← Prev file</Text>
+          </TouchableOpacity>
+          <Text style={styles.navLabel}>
+            {fileIndex + 1} / {files.length}
+          </Text>
+          <TouchableOpacity
+            style={[styles.navBtn, fileIndex >= files.length - 1 && styles.navBtnDisabled]}
+            onPress={() => setFileIndex((i) => Math.min(files.length - 1, i + 1))}
+            disabled={fileIndex >= files.length - 1}
+          >
+            <Text style={styles.navBtnText}>Next file →</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.actionRow}>
+          <Button title="Reject" variant="secondary" onPress={() => router.back()} style={styles.footerBtn} />
+          <Button
+            title="Accept & Continue"
+            onPress={acceptAndContinue}
+            disabled={valid === false}
+            style={styles.footerBtn}
+          />
+        </View>
       </View>
     </View>
   );
@@ -135,89 +168,94 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: Spacing.md,
+    justifyContent: "space-between",
+    padding: Spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.surface,
   },
-  headerTitle: {
+  fileName: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: Typography.size.md,
+    ...Typography.mono,
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  acceptAllBtn: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  rejectAllBtn: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  headerBtnText: {
+    color: Colors.primary,
     fontSize: Typography.size.sm,
-    color: Colors.success,
+    fontWeight: "500",
   },
   validateBadge: {
-    backgroundColor: Colors.accent,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
+    alignSelf: "flex-start",
+    margin: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
   },
   validBadge: { backgroundColor: Colors.success },
   invalidBadge: { backgroundColor: Colors.danger },
   badgeText: {
     color: "#fff",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
+    fontSize: Typography.size.sm,
+    fontWeight: "600",
   },
   errorBox: {
-    flexDirection: "row",
-    backgroundColor: `${Colors.danger}15`,
+    marginHorizontal: Spacing.md,
     padding: Spacing.md,
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.danger,
+    backgroundColor: `${Colors.danger}20`,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.danger,
   },
   errorText: {
     color: Colors.danger,
-    fontSize: Typography.size.xs,
-    marginLeft: Spacing.sm,
-    fontFamily: "SpaceMono",
+    fontSize: Typography.size.sm,
   },
-  diffContainer: {
-    flex: 1,
-  },
-  diffContent: {
-    paddingVertical: Spacing.sm,
-  },
-  lineWrapper: {
-    flexDirection: "row",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 1,
-  },
-  lineNumber: {
-    width: 30,
-    fontSize: 10,
-    color: Colors.textMuted,
-    fontFamily: "SpaceMono",
-    textAlign: "right",
-    marginRight: Spacing.md,
-  },
-  codeText: {
-    fontSize: 11,
-    fontFamily: "SpaceMono",
-    flex: 1,
-  },
-  addLine: {
-    backgroundColor: `${Colors.success}10`,
-  },
-  delLine: {
-    backgroundColor: `${Colors.danger}10`,
-  },
-  headerLine: {
-    backgroundColor: `${Colors.accent}10`,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: `${Colors.accent}20`,
-    marginVertical: 4,
-  },
+  diffList: { flex: 1 },
+  diffContent: { paddingVertical: Spacing.sm },
   footer: {
-    padding: Spacing.md,
-    flexDirection: "row",
-    gap: Spacing.md,
+    padding: Spacing.lg,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     backgroundColor: Colors.surface,
+  },
+  navRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.md,
+  },
+  navBtn: {
+    padding: Spacing.sm,
+  },
+  navBtnDisabled: {
+    opacity: 0.5,
+  },
+  navBtnText: {
+    color: Colors.primary,
+    fontSize: Typography.size.sm,
+  },
+  navLabel: {
+    color: Colors.textMuted,
+    fontSize: Typography.size.sm,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
   },
   footerBtn: {
     flex: 1,

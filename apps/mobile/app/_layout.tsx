@@ -14,12 +14,12 @@ export default function RootLayout() {
     <>
       <StatusBar style="light" />
       <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: "#0a0a0a" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "600" },
-          contentStyle: { backgroundColor: "#0a0a0a" },
-        }}
+      screenOptions={{
+        headerStyle: { backgroundColor: "#0D0F12" },
+        headerTintColor: "#E6EDF3",
+        headerTitleStyle: { fontWeight: "600", fontSize: 17 },
+        contentStyle: { backgroundColor: "#0D0F12" },
+      }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)/sign-in" options={{ title: "Sign in" }} />

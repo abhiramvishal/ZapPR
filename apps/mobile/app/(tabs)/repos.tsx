@@ -4,22 +4,24 @@ import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  TextInput,
 } from "react-native";
-import { Octicons } from "@expo/vector-icons";
-import { repos as reposApi, Repo } from "../../lib/api";
-import { useRepoStore } from "../../lib/store";
-import { Colors, Spacing, Typography } from "../../lib/theme";
-import { TerminalText } from "../../components/TerminalText";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { repos as reposApi, Repo } from "@/lib/api";
+import { useRepoStore } from "@/lib/store";
+import { Colors, Spacing, Typography } from "@/lib/theme";
+import { RepoCard } from "@/components/RepoCard";
 
 export default function ReposScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState("");
   const setRepo = useRepoStore((s) => s.setRepo);
 
   const load = async () => {
@@ -48,40 +50,50 @@ export default function ReposScreen() {
     router.push("/(tabs)/branches");
   };
 
+  const filtered = repos.filter(
+    (r) =>
+      r.name.toLowerCase().includes(search.toLowerCase()) ||
+      r.full_name.toLowerCase().includes(search.toLowerCase())
+  );
+
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="small" color={Colors.primary} />
+      <View style={[styles.centered, { paddingBottom: insets.bottom }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TerminalText style={styles.headerTitle}>
-          {"> list-repos --all"}
-        </TerminalText>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <View style={styles.searchBar}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search repos..."
+          placeholderTextColor={Colors.textMuted}
+          value={search}
+          onChangeText={setSearch}
+        />
       </View>
       <FlatList
-        data={repos}
+        data={filtered}
         keyExtractor={(r) => String(r.id)}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>No repos found</Text>
+          </View>
+        }
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.item}
+          <RepoCard
+            name={item.name}
+            fullName={item.full_name}
+            isPrivate={item.private}
             onPress={() => selectRepo(item)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.itemHeader}>
-              <Octicons name="repo" size={14} color={Colors.textMuted} style={styles.icon} />
-              <Text style={styles.name}>{item.name}</Text>
-            </View>
-            <Text style={styles.fullName}>{item.full_name}</Text>
-          </TouchableOpacity>
+          />
         )}
       />
     </View>
@@ -90,49 +102,38 @@ export default function ReposScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background },
-  header: {
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.background,
+  },
+  searchBar: {
     padding: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.surface,
   },
-  headerTitle: {
-    fontSize: Typography.size.sm,
-    color: Colors.success,
+  searchInput: {
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    color: Colors.text,
+    fontSize: Typography.size.md,
   },
   listContent: {
     padding: Spacing.md,
+    paddingBottom: Spacing.xxl,
   },
-  item: {
-    padding: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: Spacing.sm,
-  },
-  itemHeader: {
-    flexDirection: "row",
+  empty: {
+    padding: Spacing.xxxxl,
     alignItems: "center",
-    marginBottom: 2,
   },
-  icon: {
-    marginRight: Spacing.sm,
-  },
-  name: {
-    color: Colors.text,
+  emptyText: {
+    color: Colors.textMuted,
     fontSize: Typography.size.md,
-    fontWeight: "600",
-    fontFamily: "SpaceMono",
-  },
-  fullName: {
-    color: Colors.textMuted,
-    fontSize: Typography.size.xs,
-    fontFamily: "SpaceMono",
-  },
-  description: {
-    color: Colors.textMuted,
-    fontSize: Typography.size.xs,
-    marginTop: Spacing.sm,
   },
 });

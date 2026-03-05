@@ -7,13 +7,14 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
-import { Colors, Spacing, Typography } from "../lib/theme";
-import { TerminalText } from "../components/TerminalText";
-import { Button } from "../components/Button";
+import { Colors, Spacing, Typography } from "@/lib/theme";
+import { Button } from "@/components/Button";
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [claudeKey, setClaudeKey] = useState("");
   const [saved, setSaved] = useState(false);
 
@@ -38,15 +39,10 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TerminalText style={styles.headerTitle}>
-          {"> config --edit --global"}
-        </TerminalText>
-      </View>
-
-      <View style={styles.content}>
-        <Text style={styles.label}>CLAUDE_API_KEY</Text>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <View style={styles.section}>
+        <Text style={styles.label}>Claude API Key</Text>
+        <Text style={styles.hint}>Stored locally only. Never sent to our servers.</Text>
         <TextInput
           style={styles.input}
           placeholder="sk-ant-..."
@@ -58,60 +54,53 @@ export default function SettingsScreen() {
           autoCorrect={false}
         />
         <Button
-          title={saved ? "SAVED" : "UPDATE KEY"}
+          title={saved ? "Saved" : "Save"}
           onPress={save}
-          variant={saved ? "primary" : "outline"}
+          variant={saved ? "primary" : "secondary"}
           style={styles.saveBtn}
         />
-
-        <View style={styles.divider} />
-
-        <Text style={styles.label}>USER_SESSION</Text>
-        <Button
-          title="Sign out / De-auth"
-          onPress={signOut}
-          variant="danger"
-          style={styles.signOutBtn}
-        />
       </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>ZapPR v0.1.0-alpha</Text>
+      <View style={styles.divider} />
+
+      <View style={styles.section}>
+        <Text style={styles.label}>Account</Text>
+        <Button title="Sign out" variant="danger" onPress={signOut} style={styles.signOutBtn} />
       </View>
+
+      <Text style={styles.footer}>ZapPR v0.1.0</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    padding: Spacing.lg,
   },
-  headerTitle: {
-    fontSize: Typography.size.sm,
-    color: Colors.success,
-  },
-  content: {
-    padding: Spacing.xl,
+  section: {
+    marginBottom: Spacing.lg,
   },
   label: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: Colors.textMuted,
+    color: Colors.text,
+    fontSize: Typography.size.lg,
+    fontWeight: "600",
     marginBottom: Spacing.xs,
-    letterSpacing: 0.5,
+  },
+  hint: {
+    color: Colors.textMuted,
+    fontSize: Typography.size.sm,
+    marginBottom: Spacing.sm,
   },
   input: {
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: 8,
     color: Colors.text,
-    padding: Spacing.md,
-    fontFamily: "SpaceMono",
-    fontSize: Typography.size.sm,
+    padding: Spacing.lg,
+    fontSize: Typography.size.md,
     marginBottom: Spacing.md,
   },
   saveBtn: {
@@ -120,21 +109,18 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: Colors.border,
-    marginVertical: Spacing.xxl,
+    marginVertical: Spacing.lg,
   },
   signOutBtn: {
     height: 48,
   },
   footer: {
     position: "absolute",
-    bottom: Spacing.xl,
+    bottom: Spacing.xxl,
     left: 0,
     right: 0,
-    alignItems: "center",
-  },
-  footerText: {
-    fontFamily: "SpaceMono",
-    fontSize: Typography.size.xs,
     color: Colors.textMuted,
+    fontSize: Typography.size.sm,
+    textAlign: "center",
   },
 });

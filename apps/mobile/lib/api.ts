@@ -8,21 +8,21 @@ async function getToken(): Promise<string | null> {
 
 export async function api<T>(
   path: string,
-  options: RequestInit & { body?: object } = {}
+  options: { method?: string; body?: Record<string, unknown>; headers?: Record<string, string> } = {}
 ): Promise<T> {
   const token = await getToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
+    ...(options.headers ?? {}),
   };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(`${API_URL}${path}`, {
-    ...options,
+    method: options.method ?? "GET",
     headers,
-    body: options.body ? JSON.stringify(options.body) : options.body,
+    body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
   if (!res.ok) {
