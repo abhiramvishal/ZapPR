@@ -24,7 +24,7 @@ export const Spacing = {
 
 export const Typography = {
   mono: {
-    fontFamily: "SpaceMono", // Default Expo monospace, or "JetBrains Mono" if loaded
+    fontFamily: "monospace", // Use system monospace for web compatibility
   },
   sans: {
     fontWeight: "400" as const,
@@ -48,7 +48,7 @@ export const GlobalStyles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   monoText: {
-    fontFamily: "SpaceMono", // Ensure this matches available fonts
+    fontFamily: "monospace", // Use system monospace for web compatibility
     color: Colors.text,
   },
   borderSide: {

@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   treeText: {
     color: Colors.textMuted,
     fontSize: 11,
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     flex: 1,
   },
   textActive: {
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     fontSize: 9,
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     color: Colors.warning,
     marginLeft: 4,
   },
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   inputPrompt: {
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     color: Colors.success,
     fontSize: Typography.size.md,
     marginTop: 10,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: Colors.text,
     fontSize: Typography.size.md,
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     minHeight: 40,
     paddingTop: 10,
   },

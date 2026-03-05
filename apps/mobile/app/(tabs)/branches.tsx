@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     paddingHorizontal: Spacing.md,
     height: 48,
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     fontSize: Typography.size.md,
   },
   createBtn: {
@@ -168,6 +168,6 @@ const styles = StyleSheet.create({
   name: {
     color: Colors.text,
     fontSize: Typography.size.sm,
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
   },
 });

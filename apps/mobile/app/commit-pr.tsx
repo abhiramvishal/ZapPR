@@ -166,13 +166,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   fileStatus: {
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     fontSize: 10,
     color: Colors.warning,
     width: 20,
   },
   fileName: {
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     fontSize: 11,
     color: Colors.textMuted,
   },
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     color: Colors.text,
     padding: Spacing.md,
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     fontSize: Typography.size.md,
   },
   textArea: {

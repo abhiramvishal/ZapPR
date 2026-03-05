@@ -123,12 +123,12 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: Typography.size.md,
     fontWeight: "600",
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
   },
   fullName: {
     color: Colors.textMuted,
     fontSize: Typography.size.xs,
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
   },
   description: {
     color: Colors.textMuted,

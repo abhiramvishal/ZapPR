@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     color: Colors.danger,
     fontSize: Typography.size.xs,
     marginLeft: Spacing.sm,
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
   },
   diffContainer: {
     flex: 1,
@@ -189,13 +189,13 @@ const styles = StyleSheet.create({
     width: 30,
     fontSize: 10,
     color: Colors.textMuted,
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     textAlign: "right",
     marginRight: Spacing.md,
   },
   codeText: {
     fontSize: 11,
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     flex: 1,
   },
   addLine: {

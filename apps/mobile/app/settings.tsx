@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     color: Colors.text,
     padding: Spacing.md,
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     fontSize: Typography.size.sm,
     marginBottom: Spacing.md,
   },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   footerText: {
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     fontSize: Typography.size.xs,
     color: Colors.textMuted,
   },

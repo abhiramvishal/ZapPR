@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   version: {
-    fontFamily: "SpaceMono",
+    fontFamily: "monospace",
     fontSize: Typography.size.xs,
     color: Colors.textMuted,
     textAlign: "center",

@@ -30,7 +30,7 @@ export const TerminalText = ({ children, streaming, style }: TerminalTextProps) 
 
 const styles = StyleSheet.create({
     text: {
-        fontFamily: "SpaceMono", // Default Expo monospace
+        fontFamily: "monospace", // Default Expo monospace
         fontSize: Typography.size.md,
         color: Colors.text,
         lineHeight: 20,
