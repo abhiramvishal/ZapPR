@@ -4,11 +4,13 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   Alert,
 } from "react-native";
 import { storage } from "@/lib/storage";
+import { Colors, Spacing, Typography } from "../lib/theme";
+import { TerminalText } from "../components/TerminalText";
+import { Button } from "../components/Button";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -26,6 +28,7 @@ export default function SettingsScreen() {
       setTimeout(() => setSaved(false), 2000);
     } else {
       await storage.deleteItemAsync("claude_key");
+      Alert.alert("Success", "API key removed.");
     }
   };
 
@@ -36,48 +39,102 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Claude API Key (stored locally only)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="sk-ant-..."
-        placeholderTextColor="#71717a"
-        value={claudeKey}
-        onChangeText={setClaudeKey}
-        secureTextEntry
-        autoCapitalize="none"
-      />
-      <TouchableOpacity style={styles.saveBtn} onPress={save}>
-        <Text style={styles.saveBtnText}>{saved ? "Saved" : "Save"}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.signOutBtn} onPress={signOut}>
-        <Text style={styles.signOutBtnText}>Sign out</Text>
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <TerminalText style={styles.headerTitle}>
+          {"> config --edit --global"}
+        </TerminalText>
+      </View>
+
+      <View style={styles.content}>
+        <Text style={styles.label}>CLAUDE_API_KEY</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="sk-ant-..."
+          placeholderTextColor={Colors.textMuted}
+          value={claudeKey}
+          onChangeText={setClaudeKey}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <Button
+          title={saved ? "SAVED" : "UPDATE KEY"}
+          onPress={save}
+          variant={saved ? "primary" : "outline"}
+          style={styles.saveBtn}
+        />
+
+        <View style={styles.divider} />
+
+        <Text style={styles.label}>USER_SESSION</Text>
+        <Button
+          title="Sign out / De-auth"
+          onPress={signOut}
+          variant="danger"
+          style={styles.signOutBtn}
+        />
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>ZapPR v0.1.0-alpha</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#0a0a0a" },
-  label: { color: "#a1a1aa", fontSize: 14, marginBottom: 8 },
+  container: { flex: 1, backgroundColor: Colors.background },
+  header: {
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  headerTitle: {
+    fontSize: Typography.size.sm,
+    color: Colors.success,
+  },
+  content: {
+    padding: Spacing.xl,
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: Colors.textMuted,
+    marginBottom: Spacing.xs,
+    letterSpacing: 0.5,
+  },
   input: {
-    backgroundColor: "#27272a",
-    color: "#fff",
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    color: Colors.text,
+    padding: Spacing.md,
+    fontFamily: "SpaceMono",
+    fontSize: Typography.size.sm,
+    marginBottom: Spacing.md,
   },
   saveBtn: {
-    backgroundColor: "#22c55e",
-    padding: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 16,
+    height: 48,
   },
-  saveBtnText: { color: "#fff", fontWeight: "600" },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.xxl,
+  },
   signOutBtn: {
-    padding: 14,
-    alignItems: "center",
-    marginTop: 24,
+    height: 48,
   },
-  signOutBtnText: { color: "#ef4444", fontWeight: "600" },
+  footer: {
+    position: "absolute",
+    bottom: Spacing.xl,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  footerText: {
+    fontFamily: "SpaceMono",
+    fontSize: Typography.size.xs,
+    color: Colors.textMuted,
+  },
 });

@@ -9,20 +9,21 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  FlatList,
 } from "react-native";
 import { storage } from "@/lib/storage";
-import { repos as reposApi, agent as agentApi, TreeEntry } from "@/lib/api";
-import { useRepoStore } from "@/lib/store";
+import { Octicons } from "@expo/vector-icons";
+import { repos as reposApi, agent as agentApi, TreeEntry } from "../lib/api";
+import { useRepoStore } from "../lib/store";
+import { Colors, Spacing, Typography } from "../lib/theme";
+import { TerminalText } from "../components/TerminalText";
+import { Button } from "../components/Button";
 
 export default function WorkspaceScreen() {
   const router = useRouter();
-  const repo = useRepoStore((s) => s.repo);
-  const branch = useRepoStore((s) => s.branch);
+  const repo = useRepoStore((s: any) => s.repo);
+  const branch = useRepoStore((s: any) => s.branch);
   const [tree, setTree] = useState<TreeEntry[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
-  const [fileContent, setFileContent] = useState("");
-  const [currentPath, setCurrentPath] = useState<string | null>(null);
   const [goal, setGoal] = useState("");
   const [loading, setLoading] = useState(false);
   const [patchResult, setPatchResult] = useState<{
@@ -51,26 +52,13 @@ export default function WorkspaceScreen() {
     });
   };
 
-  const loadFile = async (path: string) => {
-    if (!repo || !branch) return;
-    const [owner, repoName] = repo.full_name.split("/");
-    try {
-      const fc = await reposApi.file(owner, repoName, path, branch.name);
-      setFileContent(fc.content);
-      setCurrentPath(path);
-    } catch {
-      setFileContent("");
-      setCurrentPath(path);
-    }
-  };
-
   const generatePatch = async () => {
     if (!repo || !branch || !goal.trim()) return;
     const claudeKey = await storage.getItemAsync("claude_key");
     if (!claudeKey) {
       Alert.alert(
-        "Claude API Key",
-        "Add your Claude API key in Settings to generate patches."
+        "Missing API Key",
+        "Please add your Claude API key in Settings."
       );
       return;
     }
@@ -96,7 +84,8 @@ export default function WorkspaceScreen() {
 
   const goToDiff = () => {
     if (patchResult) {
-      useRepoStore.setState({ patch: patchResult.patch });
+      useRepoStore.getState().setPatch(patchResult.patch);
+      useRepoStore.getState().setFilesChanged(patchResult.files_changed);
       router.push("/diff");
     }
   };
@@ -107,98 +96,261 @@ export default function WorkspaceScreen() {
 
   return (
     <View style={styles.container}>
+      {/* File Tree Section */}
       <View style={styles.treeSection}>
-        <Text style={styles.sectionTitle}>Files (select for context)</Text>
+        <View style={styles.sectionHeader}>
+          <Octicons name="file-directory" size={14} color={Colors.textMuted} />
+          <Text style={styles.sectionTitle}>EXPLORER</Text>
+        </View>
         <ScrollView style={styles.treeScroll}>
-          {blobs.slice(0, 100).map((e) => (
-            <TouchableOpacity
-              key={e.path}
-              style={[styles.treeItem, selectedFiles.has(e.path) && styles.treeItemSelected]}
-              onPress={() => toggleFile(e.path)}
-              onLongPress={() => loadFile(e.path)}
-            >
-              <Text style={styles.treeText} numberOfLines={1}>
-                {e.path}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {blobs.slice(0, 100).map((e) => {
+            const isSelected = selectedFiles.has(e.path);
+            const isChanged = patchResult?.files_changed.includes(e.path);
+
+            return (
+              <TouchableOpacity
+                key={e.path}
+                style={[
+                  styles.treeItem,
+                  isSelected && styles.treeItemSelected,
+                ]}
+                onPress={() => toggleFile(e.path)}
+              >
+                <View style={styles.treeItemContent}>
+                  <Octicons
+                    name={isSelected ? "check-circle-fill" : "file"}
+                    size={12}
+                    color={isSelected ? Colors.success : Colors.textMuted}
+                    style={styles.fileIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.treeText,
+                      isSelected && styles.textActive,
+                      isChanged && styles.textModified
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {e.path.split("/").pop()}
+                  </Text>
+                </View>
+                {isChanged && <Text style={styles.statusBadge}>M</Text>}
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
+
+      {/* Main Chat/Terminal Section */}
       <View style={styles.mainSection}>
-        <TextInput
-          style={styles.goalInput}
-          placeholder="What should the agent do? (e.g. Add error handling to main.py)"
-          placeholderTextColor="#71717a"
-          value={goal}
-          onChangeText={setGoal}
-          multiline
-        />
-        <TouchableOpacity
-          style={[styles.generateBtn, loading && styles.disabled]}
-          onPress={generatePatch}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.generateBtnText}>Generate Patch</Text>
-          )}
-        </TouchableOpacity>
-        {patchResult && (
-          <View style={styles.result}>
-            <Text style={styles.resultTitle}>Plan:</Text>
-            {patchResult.plan.map((p, i) => (
-              <Text key={i} style={styles.planItem}>• {p}</Text>
-            ))}
-            <Text style={styles.resultTitle}>Summary:</Text>
-            <Text style={styles.summary}>{patchResult.summary}</Text>
-            <TouchableOpacity style={styles.reviewBtn} onPress={goToDiff}>
-              <Text style={styles.reviewBtnText}>Review Diff</Text>
-            </TouchableOpacity>
+        <View style={styles.chatHeader}>
+          <TerminalText style={styles.chatTitle}>
+            {`ssh agent@zappr:${repo.name}`}
+          </TerminalText>
+        </View>
+
+        <ScrollView style={styles.chatScroll} contentContainerStyle={styles.chatContent}>
+          <View style={styles.messageBox}>
+            <TerminalText style={styles.prompt}>$ zappr init</TerminalText>
+            <TerminalText style={styles.botMessage}>
+              {"Welcome to ZapPR. I'm your AI agent. Select files from the explorer for context, then tell me what to change."}
+            </TerminalText>
           </View>
-        )}
+
+          {loading && (
+            <View style={styles.messageBox}>
+              <TerminalText style={styles.prompt}>$ zappr patch --generate</TerminalText>
+              <TerminalText style={styles.botMessage} streaming>
+                {"Analyzing codebase and generating patch..."}
+              </TerminalText>
+            </View>
+          )}
+
+          {patchResult && (
+            <View style={styles.messageBox}>
+              <TerminalText style={styles.prompt}>$ zappr patch --summary</TerminalText>
+              <View style={styles.planBox}>
+                {patchResult.plan.map((p, i) => (
+                  <TerminalText key={i} style={styles.planItem}>
+                    {`[${i + 1}] ${p}`}
+                  </TerminalText>
+                ))}
+              </View>
+              <TerminalText style={styles.botMessage}>
+                {patchResult.summary}
+              </TerminalText>
+              <Button
+                title="Review Diff"
+                onPress={goToDiff}
+                variant="outline"
+                style={styles.reviewBtn}
+              />
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={styles.inputSection}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputPrompt}>{">"}</Text>
+            <TextInput
+              style={styles.goalInput}
+              placeholder="What's the goal?"
+              placeholderTextColor={Colors.textMuted}
+              value={goal}
+              onChangeText={setGoal}
+              multiline
+              autoCorrect={false}
+            />
+          </View>
+          <Button
+            title="Execute"
+            onPress={generatePatch}
+            loading={loading}
+            disabled={!goal.trim() || loading}
+            style={styles.executeBtn}
+          />
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, flexDirection: "row", backgroundColor: "#0a0a0a" },
-  treeSection: { width: 140, borderRightWidth: 1, borderRightColor: "#27272a" },
-  sectionTitle: { color: "#71717a", fontSize: 12, padding: 8 },
+  container: {
+    flex: 1,
+    flexDirection: "row",
+    backgroundColor: Colors.background,
+  },
+  treeSection: {
+    width: 120,
+    backgroundColor: Colors.background,
+    borderRightWidth: 1,
+    borderRightColor: Colors.border,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.sm,
+    backgroundColor: Colors.surface,
+  },
+  sectionTitle: {
+    color: Colors.textMuted,
+    fontSize: Typography.size.xs,
+    fontWeight: "700",
+    marginLeft: Spacing.xs,
+    letterSpacing: 1,
+  },
   treeScroll: { flex: 1 },
-  treeItem: { padding: 8, paddingLeft: 12 },
-  treeItemSelected: { backgroundColor: "#22c55e20" },
-  treeText: { color: "#a1a1aa", fontSize: 12 },
-  mainSection: { flex: 1, padding: 16 },
-  goalInput: {
-    backgroundColor: "#27272a",
-    color: "#fff",
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
-  generateBtn: {
-    backgroundColor: "#22c55e",
-    padding: 14,
-    borderRadius: 8,
+  treeItem: {
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.sm,
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 12,
+    justifyContent: "space-between",
   },
-  generateBtnText: { color: "#fff", fontWeight: "600" },
-  disabled: { opacity: 0.6 },
-  result: { marginTop: 20 },
-  resultTitle: { color: "#fff", fontWeight: "600", marginTop: 12 },
-  planItem: { color: "#a1a1aa", marginTop: 4, marginLeft: 8 },
-  summary: { color: "#a1a1aa", marginTop: 8 },
+  treeItemContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  treeItemSelected: {
+    backgroundColor: Colors.surface,
+  },
+  fileIcon: {
+    marginRight: 6,
+  },
+  treeText: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontFamily: "SpaceMono",
+    flex: 1,
+  },
+  textActive: {
+    color: Colors.text,
+  },
+  textModified: {
+    color: Colors.warning,
+  },
+  statusBadge: {
+    fontSize: 9,
+    fontFamily: "SpaceMono",
+    color: Colors.warning,
+    marginLeft: 4,
+  },
+  mainSection: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  chatHeader: {
+    padding: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  chatTitle: {
+    fontSize: Typography.size.xs,
+    color: Colors.textMuted,
+  },
+  chatScroll: { flex: 1 },
+  chatContent: {
+    padding: Spacing.md,
+  },
+  messageBox: {
+    marginBottom: Spacing.xl,
+  },
+  prompt: {
+    fontSize: Typography.size.sm,
+    color: Colors.success,
+    marginBottom: 4,
+  },
+  botMessage: {
+    fontSize: Typography.size.sm,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  planBox: {
+    paddingLeft: Spacing.md,
+    borderLeftWidth: 1,
+    borderLeftColor: Colors.border,
+    marginBottom: Spacing.md,
+    marginTop: Spacing.xs,
+  },
+  planItem: {
+    fontSize: Typography.size.xs,
+    color: Colors.textMuted,
+    marginBottom: 2,
+  },
   reviewBtn: {
-    backgroundColor: "#3b82f6",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 16,
+    marginTop: Spacing.md,
+    height: 40,
   },
-  reviewBtnText: { color: "#fff", fontWeight: "600" },
+  inputSection: {
+    padding: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: Spacing.sm,
+  },
+  inputPrompt: {
+    fontFamily: "SpaceMono",
+    color: Colors.success,
+    fontSize: Typography.size.md,
+    marginTop: 10,
+    marginRight: 8,
+  },
+  goalInput: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: Typography.size.md,
+    fontFamily: "SpaceMono",
+    minHeight: 40,
+    paddingTop: 10,
+  },
+  executeBtn: {
+    height: 48,
+  },
 });

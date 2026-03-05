@@ -5,13 +5,14 @@ import { useState } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   Alert,
 } from "react-native";
 import { storage } from "@/lib/storage";
-import { auth } from "@/lib/api";
+import { auth } from "../../lib/api";
+import { Colors, Spacing, Typography } from "../../lib/theme";
+import { Button } from "../../components/Button";
+import { TerminalText } from "../../components/TerminalText";
 
 export default function SignIn() {
   const router = useRouter();
@@ -48,21 +49,28 @@ export default function SignIn() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>ZapPR</Text>
-      <Text style={styles.subtitle}>
-        Agentic Git Client — generate patches, review diffs, open PRs
-      </Text>
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSignIn}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Sign in with GitHub</Text>
-        )}
-      </TouchableOpacity>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.title}>ZapPR</Text>
+          <View style={styles.cursor} />
+        </View>
+        <TerminalText style={styles.subtitle}>
+          {"> Initializing Agentic Git Client..."}
+        </TerminalText>
+        <TerminalText style={styles.description} streaming>
+          {"Ready to generate patches, review diffs, and open PRs from your pocket."}
+        </TerminalText>
+
+        <View style={styles.footer}>
+          <Button
+            title="Authenticate with GitHub"
+            onPress={handleSignIn}
+            loading={loading}
+            style={styles.button}
+          />
+          <Text style={styles.version}>v0.1.0-alpha</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -70,37 +78,54 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background,
+    padding: Spacing.xl,
     justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: "#0a0a0a",
+  },
+  content: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.xl,
+    backgroundColor: Colors.surface,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: Spacing.md,
   },
   title: {
-    fontSize: 32,
+    fontSize: Typography.size.xxl,
     fontWeight: "700",
-    color: "#fff",
-    marginBottom: 8,
+    color: Colors.text,
+    letterSpacing: -1,
+  },
+  cursor: {
+    width: 12,
+    height: 24,
+    backgroundColor: Colors.primary,
+    marginLeft: 4,
   },
   subtitle: {
-    fontSize: 16,
-    color: "#71717a",
-    textAlign: "center",
-    marginBottom: 48,
+    color: Colors.success,
+    fontSize: Typography.size.sm,
+    marginBottom: Spacing.lg,
+  },
+  description: {
+    fontSize: Typography.size.md,
+    color: Colors.textMuted,
+    lineHeight: 24,
+    marginBottom: Spacing.xxl,
+  },
+  footer: {
+    marginTop: Spacing.xl,
   },
   button: {
-    backgroundColor: "#22c55e",
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    minWidth: 200,
-    alignItems: "center",
+    marginBottom: Spacing.md,
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+  version: {
+    fontFamily: "SpaceMono",
+    fontSize: Typography.size.xs,
+    color: Colors.textMuted,
+    textAlign: "center",
   },
 });

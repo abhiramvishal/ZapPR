@@ -9,8 +9,11 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { repos as reposApi, Repo } from "@/lib/api";
-import { useRepoStore } from "@/lib/store";
+import { Octicons } from "@expo/vector-icons";
+import { repos as reposApi, Repo } from "../../lib/api";
+import { useRepoStore } from "../../lib/store";
+import { Colors, Spacing, Typography } from "../../lib/theme";
+import { TerminalText } from "../../components/TerminalText";
 
 export default function ReposScreen() {
   const router = useRouter();
@@ -48,22 +51,35 @@ export default function ReposScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#22c55e" />
+        <ActivityIndicator size="small" color={Colors.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <TerminalText style={styles.headerTitle}>
+          {"> list-repos --all"}
+        </TerminalText>
+      </View>
       <FlatList
         data={repos}
         keyExtractor={(r) => String(r.id)}
+        contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#22c55e" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.item} onPress={() => selectRepo(item)}>
-            <Text style={styles.name}>{item.name}</Text>
+          <TouchableOpacity
+            style={styles.item}
+            onPress={() => selectRepo(item)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.itemHeader}>
+              <Octicons name="repo" size={14} color={Colors.textMuted} style={styles.icon} />
+              <Text style={styles.name}>{item.name}</Text>
+            </View>
             <Text style={styles.fullName}>{item.full_name}</Text>
           </TouchableOpacity>
         )}
@@ -73,13 +89,50 @@ export default function ReposScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0a0a0a" },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0a0a0a" },
-  item: {
-    padding: 16,
+  container: { flex: 1, backgroundColor: Colors.background },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background },
+  header: {
+    padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: "#27272a",
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
-  name: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  fullName: { color: "#71717a", fontSize: 14, marginTop: 4 },
+  headerTitle: {
+    fontSize: Typography.size.sm,
+    color: Colors.success,
+  },
+  listContent: {
+    padding: Spacing.md,
+  },
+  item: {
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: Spacing.sm,
+  },
+  itemHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  icon: {
+    marginRight: Spacing.sm,
+  },
+  name: {
+    color: Colors.text,
+    fontSize: Typography.size.md,
+    fontWeight: "600",
+    fontFamily: "SpaceMono",
+  },
+  fullName: {
+    color: Colors.textMuted,
+    fontSize: Typography.size.xs,
+    fontFamily: "SpaceMono",
+  },
+  description: {
+    color: Colors.textMuted,
+    fontSize: Typography.size.xs,
+    marginTop: Spacing.sm,
+  },
 });

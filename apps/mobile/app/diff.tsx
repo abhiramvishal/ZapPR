@@ -6,44 +6,54 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
-import { useRepoStore } from "@/lib/store";
-import { patchApi } from "@/lib/api";
+import { Octicons } from "@expo/vector-icons";
+import { useRepoStore } from "../lib/store";
+import { patchApi } from "../lib/api";
+import { Colors, Spacing, Typography } from "../lib/theme";
+import { TerminalText } from "../components/TerminalText";
+import { Button } from "../components/Button";
 
-function DiffView({ patch }: { patch: string }) {
-  const lines = patch.split("\n");
+function DiffLine({ line, index }: { line: string; index: number }) {
+  const isAdd = line.startsWith("+") && !line.startsWith("+++");
+  const isDel = line.startsWith("-") && !line.startsWith("---");
+  const isHeader = line.startsWith("@@") || line.startsWith("index") || line.startsWith("---") || line.startsWith("+++");
+
+  const getLineStyle = () => {
+    if (isAdd) return styles.addLine;
+    if (isDel) return styles.delLine;
+    if (isHeader) return styles.headerLine;
+    return {};
+  };
+
+  const getTextColor = () => {
+    if (isAdd) return Colors.success;
+    if (isDel) return Colors.danger;
+    if (isHeader) return Colors.accent;
+    return Colors.textMuted;
+  };
+
   return (
-    <ScrollView style={styles.diffScroll} horizontal>
-      <ScrollView nestedScrollEnabled>
-        {lines.map((line, i) => {
-          const isAdd = line.startsWith("+") && !line.startsWith("+++");
-          const isDel = line.startsWith("-") && !line.startsWith("---");
-          return (
-            <Text
-              key={i}
-              style={[
-                styles.diffLine,
-                isAdd && styles.addLine,
-                isDel && styles.delLine,
-              ]}
-            >
-              {line}
-            </Text>
-          );
-        })}
-      </ScrollView>
-    </ScrollView>
+    <View style={[styles.lineWrapper, getLineStyle()]}>
+      <Text style={styles.lineNumber}>{index + 1}</Text>
+      <Text style={[styles.codeText, { color: getTextColor() }]}>
+        {line}
+      </Text>
+    </View>
   );
 }
 
 export default function DiffScreen() {
   const router = useRouter();
-  const { repo, branch, patch } = useRepoStore();
+  const { repo, branch, patch } = useRepoStore((s: any) => s);
   const [valid, setValid] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const validate = async () => {
     if (!repo || !branch || !patch) return;
+    setLoading(true);
     try {
       const [owner, repoName] = repo.full_name.split("/");
       const result = await patchApi.validate(owner, repoName, branch.name, patch);
@@ -52,6 +62,8 @@ export default function DiffScreen() {
     } catch (e) {
       setValid(false);
       setError((e as Error).message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,60 +76,150 @@ export default function DiffScreen() {
     return null;
   }
 
+  const lines = patch.split("\n");
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.validateBtn} onPress={validate}>
-        <Text style={styles.validateBtnText}>Validate Patch</Text>
-      </TouchableOpacity>
-      {valid !== null && (
-        <View style={styles.status}>
-          <Text style={valid ? styles.validText : styles.invalidText}>
-            {valid ? "✓ Valid" : `✗ ${error || "Invalid"}`}
-          </Text>
+      <View style={styles.header}>
+        <TerminalText style={styles.headerTitle}>
+          {`> git diff --staged`}
+        </TerminalText>
+        <TouchableOpacity
+          style={[styles.validateBadge, valid === true && styles.validBadge, valid === false && styles.invalidBadge]}
+          onPress={validate}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={Colors.text} />
+          ) : (
+            <Text style={styles.badgeText}>
+              {valid === null ? "VALIDATE" : valid ? "VALID" : "INVALID"}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {error && (
+        <View style={styles.errorBox}>
+          <Octicons name="alert" size={12} color={Colors.danger} />
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
-      <DiffView patch={patch} />
-      {valid && (
-        <TouchableOpacity style={styles.acceptBtn} onPress={acceptAndContinue}>
-          <Text style={styles.acceptBtnText}>Accept & Continue to Commit</Text>
-        </TouchableOpacity>
-      )}
+
+      <ScrollView style={styles.diffContainer} contentContainerStyle={styles.diffContent}>
+        {lines.map((line: string, i: number) => (
+          <DiffLine key={i} line={line} index={i} />
+        ))}
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <Button
+          title="Reject Patch"
+          onPress={() => router.back()}
+          variant="secondary"
+          style={styles.footerBtn}
+        />
+        <Button
+          title="Accept & Commit"
+          onPress={acceptAndContinue}
+          variant="primary"
+          disabled={valid === false}
+          style={styles.footerBtn}
+        />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0a0a0a", padding: 16 },
-  validateBtn: {
-    backgroundColor: "#3b82f6",
-    padding: 12,
-    borderRadius: 8,
+  container: { flex: 1, backgroundColor: Colors.background },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
-  validateBtnText: { color: "#fff", fontWeight: "600" },
-  status: { marginBottom: 12 },
-  validText: { color: "#22c55e", fontWeight: "600" },
-  invalidText: { color: "#ef4444" },
-  diffScroll: {
+  headerTitle: {
+    fontSize: Typography.size.sm,
+    color: Colors.success,
+  },
+  validateBadge: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  validBadge: { backgroundColor: Colors.success },
+  invalidBadge: { backgroundColor: Colors.danger },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  errorBox: {
+    flexDirection: "row",
+    backgroundColor: `${Colors.danger}15`,
+    padding: Spacing.md,
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.danger,
+  },
+  errorText: {
+    color: Colors.danger,
+    fontSize: Typography.size.xs,
+    marginLeft: Spacing.sm,
+    fontFamily: "SpaceMono",
+  },
+  diffContainer: {
     flex: 1,
-    backgroundColor: "#18181b",
-    borderRadius: 8,
-    padding: 12,
   },
-  diffLine: {
-    fontFamily: "monospace",
-    fontSize: 12,
-    color: "#a1a1aa",
+  diffContent: {
+    paddingVertical: Spacing.sm,
   },
-  addLine: { color: "#22c55e", backgroundColor: "#22c55e15" },
-  delLine: { color: "#ef4444", backgroundColor: "#ef444415" },
-  acceptBtn: {
-    backgroundColor: "#22c55e",
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 16,
+  lineWrapper: {
+    flexDirection: "row",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 1,
   },
-  acceptBtnText: { color: "#fff", fontWeight: "600" },
+  lineNumber: {
+    width: 30,
+    fontSize: 10,
+    color: Colors.textMuted,
+    fontFamily: "SpaceMono",
+    textAlign: "right",
+    marginRight: Spacing.md,
+  },
+  codeText: {
+    fontSize: 11,
+    fontFamily: "SpaceMono",
+    flex: 1,
+  },
+  addLine: {
+    backgroundColor: `${Colors.success}10`,
+  },
+  delLine: {
+    backgroundColor: `${Colors.danger}10`,
+  },
+  headerLine: {
+    backgroundColor: `${Colors.accent}10`,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: `${Colors.accent}20`,
+    marginVertical: 4,
+  },
+  footer: {
+    padding: Spacing.md,
+    flexDirection: "row",
+    gap: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  footerBtn: {
+    flex: 1,
+  },
 });
