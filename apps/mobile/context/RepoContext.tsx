@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import * as SecureStore from "expo-secure-store";
+import { storage } from "@/lib/storage";
 
 const CLAUDE_KEY = "claude_api_key";
 
@@ -48,8 +48,8 @@ export function RepoProvider({ children }: { children: React.ReactNode }) {
 
   const setClaudeApiKey = async (k: string | null) => {
     try {
-      if (k) await SecureStore.setItemAsync(CLAUDE_KEY, k);
-      else await SecureStore.deleteItemAsync(CLAUDE_KEY);
+      if (k) await storage.setItem(CLAUDE_KEY, k);
+      else await storage.deleteItem(CLAUDE_KEY);
     } catch {}
     setClaudeApiKeyState(k);
   };

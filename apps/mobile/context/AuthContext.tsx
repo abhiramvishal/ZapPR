@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import * as SecureStore from "expo-secure-store";
+import { storage } from "@/lib/storage";
 
 const STORAGE_KEY = "gh_token";
 
@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const stored = await SecureStore.getItemAsync(STORAGE_KEY);
+        const stored = await storage.getItem(STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored) as { token: string; user: User };
           setToken(parsed.token);
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (t: string, u: User) => {
     try {
-      await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify({ token: t, user: u }));
+      await storage.setItem(STORAGE_KEY, JSON.stringify({ token: t, user: u }));
       setToken(t);
       setUser(u);
     } catch (e) {
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await SecureStore.deleteItemAsync(STORAGE_KEY);
+      await storage.deleteItem(STORAGE_KEY);
     } catch {}
     setToken(null);
     setUser(null);

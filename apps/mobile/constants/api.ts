@@ -1,5 +1,5 @@
 export const API_BASE =
-  (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_API_URL) ||
+  (typeof process !== "undefined" && process.env.EXPO_PUBLIC_API_URL) ||
   "http://localhost:8000";
 
 export async function apiFetch<T = unknown>(

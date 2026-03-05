@@ -1,9 +1,16 @@
-import * as SecureStore from "expo-secure-store";
+import { storage } from "./storage";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
 async function getToken(): Promise<string | null> {
-  return SecureStore.getItemAsync("jwt");
+  const stored = await storage.getItem("gh_token");
+  if (!stored) return null;
+  try {
+    const parsed = JSON.parse(stored) as { token?: string };
+    return parsed.token ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function api<T>(

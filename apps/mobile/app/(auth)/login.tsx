@@ -1,5 +1,5 @@
 import * as WebBrowser from "expo-web-browser";
-import * as Linking from "expo-linking";
+import { makeRedirectUri } from "expo-auth-session";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -36,11 +36,14 @@ export default function Login() {
   const handleSignIn = async () => {
     setLoading(true);
     try {
-      const redirectUri = Linking.createURL("auth/callback");
+      // Expo Go: returns exp://IP:8081/--/auth/callback
+      // Standalone/dev build: returns zappr://auth/callback
+      const redirectUri = makeRedirectUri({ scheme: "zappr", path: "auth/callback" });
       const data = await apiFetch<{ auth_url: string; code_verifier: string; state: string }>(
         `/auth/github/start?redirect_uri=${encodeURIComponent(redirectUri)}`
       );
 
+      WebBrowser.maybeCompleteAuthSession();
       const result = await WebBrowser.openAuthSessionAsync(data.auth_url, redirectUri);
 
       if (result.type === "success" && result.url) {
@@ -87,7 +90,9 @@ export default function Login() {
           )}
         </TouchableOpacity>
         <Text style={styles.hint}>
-          Dev: Add exp://YOUR_IP:8081/--/auth/callback to GitHub OAuth app
+          GitHub OAuth: Add redirect URI:{'\n'}
+          Expo Go: exp://YOUR_IP:8081/--/auth/callback{'\n'}
+          Standalone: zappr://auth/callback
         </Text>
       </View>
     </View>

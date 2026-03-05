@@ -4,6 +4,7 @@
     "slug": "zappr",
     "scheme": "zappr",
     "version": "1.0.0",
+    "owner": "YOUR_EXPO_USERNAME",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -24,6 +25,12 @@
       },
       "package": "com.zappr.app"
     },
-    "plugins": ["expo-router", "expo-secure-store"]
+    "plugins": ["expo-router", "expo-secure-store"],
+    "updates": {
+      "url": "https://u.expo.dev/YOUR_PROJECT_ID"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    }
   }
 }
