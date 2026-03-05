@@ -8,25 +8,38 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
+  TouchableOpacity,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { repos as reposApi, Repo } from "@/lib/api";
-import { useRepoStore } from "@/lib/store";
-import { Colors, Spacing, Typography } from "@/lib/theme";
+import { useAuth } from "@/context/AuthContext";
+import { useRepo } from "@/context/RepoContext";
+import { apiFetch } from "@/constants/api";
+import { colors, spacing } from "@/constants/theme";
 import { RepoCard } from "@/components/RepoCard";
+
+interface Repo {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+  default_branch: string;
+  owner: { login: string; avatar_url?: string };
+}
 
 export default function ReposScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { token } = useAuth();
+  const { setSelectedRepo } = useRepo();
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
-  const setRepo = useRepoStore((s) => s.setRepo);
 
   const load = async () => {
+    if (!token) return;
     try {
-      const data = await reposApi.list();
+      const data = await apiFetch<Repo[]>("/repos", token);
       setRepos(data);
     } catch (e) {
       console.error(e);
@@ -38,17 +51,7 @@ export default function ReposScreen() {
 
   useEffect(() => {
     load();
-  }, []);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    load();
-  };
-
-  const selectRepo = (repo: Repo) => {
-    setRepo(repo);
-    router.push("/(tabs)/branches");
-  };
+  }, [token]);
 
   const filtered = repos.filter(
     (r) =>
@@ -56,10 +59,15 @@ export default function ReposScreen() {
       r.full_name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const selectRepo = (repo: Repo) => {
+    setSelectedRepo(repo);
+    router.push("/(app)/branches");
+  };
+
   if (loading) {
     return (
       <View style={[styles.centered, { paddingBottom: insets.bottom }]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -70,7 +78,7 @@ export default function ReposScreen() {
         <TextInput
           style={styles.searchInput}
           placeholder="Search repos..."
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={colors.muted}
           value={search}
           onChangeText={setSearch}
         />
@@ -80,7 +88,7 @@ export default function ReposScreen() {
         keyExtractor={(r) => String(r.id)}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.primary} />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -96,44 +104,33 @@ export default function ReposScreen() {
           />
         )}
       />
+      <TouchableOpacity
+        style={[styles.settingsBtn, { bottom: insets.bottom + 16 }]}
+        onPress={() => router.push("/settings")}
+      >
+        <Text style={styles.settingsText}>Settings</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: Colors.background,
-  },
-  searchBar: {
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
+  container: { flex: 1, backgroundColor: colors.bg },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.bg },
+  searchBar: { padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.surface },
   searchInput: {
-    backgroundColor: Colors.background,
+    backgroundColor: colors.bg,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 8,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    color: Colors.text,
-    fontSize: Typography.size.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    color: colors.text,
+    fontSize: 16,
   },
-  listContent: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-  empty: {
-    padding: Spacing.xxxxl,
-    alignItems: "center",
-  },
-  emptyText: {
-    color: Colors.textMuted,
-    fontSize: Typography.size.md,
-  },
+  listContent: { padding: spacing.md, paddingBottom: 80 },
+  empty: { padding: spacing.xl * 2, alignItems: "center" },
+  emptyText: { color: colors.muted, fontSize: 16 },
+  settingsBtn: { position: "absolute", right: spacing.md },
+  settingsText: { color: colors.primary, fontSize: 16 },
 });

@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Colors, Spacing, Typography } from "@/lib/theme";
+import { colors, spacing, font } from "@/constants/theme";
 
 type GitStatus = "M" | "A" | "D" | "?";
 
@@ -15,10 +15,10 @@ interface FileTreeItemProps {
 }
 
 const statusColors: Record<GitStatus, string> = {
-  M: Colors.warning,
-  A: Colors.success,
-  D: Colors.danger,
-  "?": Colors.textMuted,
+  M: colors.warning,
+  A: colors.success,
+  D: colors.danger,
+  "?": colors.muted,
 };
 
 export const FileTreeItem = ({
@@ -33,7 +33,7 @@ export const FileTreeItem = ({
   const displayName = path.split("/").pop() || path;
   return (
     <TouchableOpacity
-      style={[styles.item, { paddingLeft: Spacing.md + indent * Spacing.lg }, isSelected && styles.selected]}
+      style={[styles.item, { paddingLeft: spacing.md + indent * spacing.lg }, isSelected && styles.selected]}
       onPress={onPress}
       onLongPress={onLongPress}
       activeOpacity={0.7}
@@ -55,33 +55,33 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: Spacing.sm,
-    paddingRight: Spacing.md,
+    paddingVertical: spacing.sm,
+    paddingRight: spacing.md,
   },
   selected: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   icon: {
     fontSize: 14,
-    marginRight: Spacing.sm,
+    marginRight: spacing.sm,
   },
   name: {
     flex: 1,
-    color: Colors.textMuted,
-    fontSize: Typography.size.sm,
-    ...Typography.mono,
+    color: colors.muted,
+    fontSize: 14,
+    fontFamily: font.mono,
   },
   nameSelected: {
-    color: Colors.text,
+    color: colors.text,
   },
   statusBadge: {
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: spacing.xs,
     paddingVertical: 2,
     borderRadius: 4,
   },
   statusText: {
     fontSize: 10,
     fontWeight: "600",
-    ...Typography.mono,
+    fontFamily: font.mono,
   },
 });

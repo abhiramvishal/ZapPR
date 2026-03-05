@@ -8,45 +8,48 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as SecureStore from "expo-secure-store";
-import { Colors, Spacing, Typography } from "@/lib/theme";
+import { useAuth } from "@/context/AuthContext";
+import { useRepo } from "@/context/RepoContext";
+import { colors, spacing } from "@/constants/theme";
 import { Button } from "@/components/Button";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { logout } = useAuth();
+  const { claudeApiKey, saveClaudeKey, setClaudeApiKey } = useRepo();
   const [claudeKey, setClaudeKey] = useState("");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    SecureStore.getItemAsync("claude_key").then((k) => setClaudeKey(k || ""));
-  }, []);
+    setClaudeKey(claudeApiKey || "");
+  }, [claudeApiKey]);
 
   const save = async () => {
     if (claudeKey.trim()) {
-      await SecureStore.setItemAsync("claude_key", claudeKey.trim());
+      await saveClaudeKey(claudeKey.trim());
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } else {
-      await SecureStore.deleteItemAsync("claude_key");
+      await setClaudeApiKey(null);
       Alert.alert("Success", "API key removed.");
     }
   };
 
   const signOut = async () => {
-    await SecureStore.deleteItemAsync("jwt");
-    router.replace("/(auth)/sign-in");
+    await logout();
+    router.replace("/(auth)/login");
   };
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <View style={styles.section}>
         <Text style={styles.label}>Claude API Key</Text>
-        <Text style={styles.hint}>Stored locally only. Never sent to our servers.</Text>
+        <Text style={styles.hint}>Stored locally only.</Text>
         <TextInput
           style={styles.input}
           placeholder="sk-ant-..."
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={colors.muted}
           value={claudeKey}
           onChangeText={setClaudeKey}
           secureTextEntry
@@ -67,8 +70,6 @@ export default function SettingsScreen() {
         <Text style={styles.label}>Account</Text>
         <Button title="Sign out" variant="danger" onPress={signOut} style={styles.signOutBtn} />
       </View>
-
-      <Text style={styles.footer}>ZapPR v0.1.0</Text>
     </View>
   );
 }
@@ -76,51 +77,36 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
-    padding: Spacing.lg,
+    backgroundColor: colors.bg,
+    padding: spacing.md,
   },
-  section: {
-    marginBottom: Spacing.lg,
-  },
+  section: { marginBottom: spacing.md },
   label: {
-    color: Colors.text,
-    fontSize: Typography.size.lg,
+    color: colors.text,
+    fontSize: 17,
     fontWeight: "600",
-    marginBottom: Spacing.xs,
+    marginBottom: spacing.xs,
   },
   hint: {
-    color: Colors.textMuted,
-    fontSize: Typography.size.sm,
-    marginBottom: Spacing.sm,
+    color: colors.muted,
+    fontSize: 14,
+    marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 8,
-    color: Colors.text,
-    padding: Spacing.lg,
-    fontSize: Typography.size.md,
-    marginBottom: Spacing.md,
+    color: colors.text,
+    padding: spacing.md,
+    fontSize: 16,
+    marginBottom: spacing.md,
   },
-  saveBtn: {
-    height: 48,
-  },
+  saveBtn: { height: 48 },
   divider: {
     height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.lg,
+    backgroundColor: colors.border,
+    marginVertical: spacing.md,
   },
-  signOutBtn: {
-    height: 48,
-  },
-  footer: {
-    position: "absolute",
-    bottom: Spacing.xxl,
-    left: 0,
-    right: 0,
-    color: Colors.textMuted,
-    fontSize: Typography.size.sm,
-    textAlign: "center",
-  },
+  signOutBtn: { height: 48 },
 });

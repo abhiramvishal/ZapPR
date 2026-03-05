@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { Colors, Spacing, Typography } from "@/lib/theme";
+import { colors, spacing, font } from "@/constants/theme";
 
 interface BranchBadgeProps {
   name: string;
@@ -16,15 +16,15 @@ export const BranchBadge = ({ name }: BranchBadgeProps) => (
 
 const styles = StyleSheet.create({
   badge: {
-    backgroundColor: `${Colors.primary}20`,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    backgroundColor: `${colors.primary}20`,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     borderRadius: 6,
     maxWidth: 120,
   },
   text: {
-    color: Colors.primary,
-    fontSize: Typography.size.xs,
-    ...Typography.mono,
+    color: colors.primary,
+    fontSize: 11,
+    fontFamily: font.mono,
   },
 });

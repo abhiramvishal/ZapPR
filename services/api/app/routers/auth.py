@@ -17,6 +17,12 @@ GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
 
 
+@router.get("/github/url")
+async def github_oauth_url(redirect_uri: str | None = None):
+    """Returns GitHub OAuth URL for mobile. Alias for /github/start."""
+    return await github_oauth_start(redirect_uri)
+
+
 @router.get("/github/start", response_model=OAuthStartResponse)
 async def github_oauth_start(redirect_uri: str | None = None):
     """Start GitHub OAuth flow. Returns URL for PKCE and state."""
@@ -41,14 +47,9 @@ async def github_oauth_start(redirect_uri: str | None = None):
     )
 
 
-@router.post("/github/callback", response_model=TokenResponse)
-async def github_oauth_callback(
-    body: CallbackRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
-):
-    """Exchange code for tokens. Returns app JWT."""
+async def _exchange_code(body: CallbackRequest, db: AsyncSession):
+    """Shared logic for code exchange."""
     redirect_uri = body.redirect_uri or settings.oauth_redirect_uri
-
     async with httpx.AsyncClient() as client:
         r = await client.post(
             GITHUB_TOKEN_URL,
@@ -66,21 +67,43 @@ async def github_oauth_callback(
     data = r.json()
     if "error" in data:
         raise HTTPException(status_code=400, detail=data.get("error_description", data["error"]))
-    access_token = data.get("access_token")
-    if not access_token:
+    gh_access = data.get("access_token")
+    if not gh_access:
         raise HTTPException(status_code=400, detail="No access token in response")
 
-    # Fetch user and store
     from app.services.github import get_user
-    gh_user = await get_user(access_token)
+    gh_user = await get_user(gh_access)
     user = await create_or_update_user(
         db,
         github_id=gh_user["id"],
         login=gh_user["login"],
         avatar_url=gh_user.get("avatar_url"),
-        access_token=access_token,
+        access_token=gh_access,
     )
     await db.commit()
-
     token = create_access_token({"sub": str(user.id)})
+    return token, {"id": user.github_id, "login": user.login, "avatar_url": user.avatar_url}
+
+
+@router.get("/github/callback")
+async def github_oauth_callback_get(
+    code: str,
+    state: str,
+    code_verifier: str,
+    redirect_uri: str | None = None,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Exchange code for tokens (GET, for mobile). Returns user + access_token."""
+    body = CallbackRequest(code=code, code_verifier=code_verifier, state=state, redirect_uri=redirect_uri)
+    token, user = await _exchange_code(body, db)
+    return {"user": user, "access_token": token}
+
+
+@router.post("/github/callback", response_model=TokenResponse)
+async def github_oauth_callback(
+    body: CallbackRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Exchange code for tokens. Returns app JWT."""
+    token, _ = await _exchange_code(body, db)
     return TokenResponse(access_token=token, expires_in=settings.jwt_expiry_minutes * 60)

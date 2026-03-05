@@ -1,28 +1,24 @@
 import { Redirect } from "expo-router";
-import { useEffect, useState } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import * as SecureStore from "expo-secure-store";
+import { useAuth } from "@/context/AuthContext";
+import { colors } from "@/constants/theme";
 
 export default function Index() {
-  const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const { token, isLoading } = useAuth();
 
-  useEffect(() => {
-    SecureStore.getItemAsync("jwt").then((t) => setHasToken(!!t));
-  }, []);
-
-  if (hasToken === null) {
+  if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#22c55e" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
-  if (hasToken) {
-    return <Redirect href="/(tabs)/repos" />;
+  if (token) {
+    return <Redirect href="/(app)/repos" />;
   }
 
-  return <Redirect href="/(auth)/sign-in" />;
+  return <Redirect href="/(auth)/login" />;
 }
 
 const styles = StyleSheet.create({
@@ -30,6 +26,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#0a0a0a",
+    backgroundColor: colors.bg,
   },
 });

@@ -86,6 +86,25 @@ class AgentPatchResponse(BaseModel):
     files_changed: list[str]
 
 
+class AgentChatMessage(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+
+class AgentChatRequest(BaseModel):
+    repo: str  # "owner/repo"
+    branch: str
+    message: str = Field(..., max_length=2000)
+    history: list[AgentChatMessage] = Field(default_factory=list, max_length=20)
+    claude_api_key: str = Field(..., min_length=1)
+
+
+class AgentChatResponse(BaseModel):
+    content: str
+    patch: Optional[str] = None
+    files_changed: list[str] = Field(default_factory=list)
+
+
 # Patch validation
 class ValidatePatchRequest(BaseModel):
     owner: str
@@ -133,3 +152,16 @@ class CreatePRRequest(BaseModel):
 class CreatePRResponse(BaseModel):
     pr_url: str
     pr_number: int
+
+
+class RepoCommitRequest(BaseModel):
+    branch: str
+    message: str = Field(..., max_length=500)
+    patches: list[str] = Field(..., max_length=50)
+
+
+class RepoPRRequest(BaseModel):
+    head: str
+    base: Optional[str] = None
+    title: str = Field(..., max_length=200)
+    body: Optional[str] = Field(None, max_length=5000)

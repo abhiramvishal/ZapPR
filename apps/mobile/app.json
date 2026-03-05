@@ -2,27 +2,27 @@
   "expo": {
     "name": "ZapPR",
     "slug": "zappr",
-    "version": "0.1.0",
     "scheme": "zappr",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0a0a0a"
+      "backgroundColor": "#0D0F12"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.zappr.mobile"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.zappr.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0a0a0a"
+        "backgroundColor": "#0D0F12"
       },
-      "package": "com.zappr.mobile"
+      "package": "com.zappr.app"
     },
     "plugins": ["expo-router", "expo-secure-store"]
   }

@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.deps import get_current_user
 from app.models import User
-from app.schemas import AgentPatchRequest, AgentPatchResponse
-from app.services.agent import generate_patch
+from app.schemas import AgentChatRequest, AgentChatResponse, AgentPatchRequest, AgentPatchResponse
+from app.services.agent import chat, generate_patch
 from app.services.github import get_branch_sha, get_file_content, get_tree
 from app.crud import get_github_token
 
@@ -73,6 +73,60 @@ async def agent_patch(
             patch=result["patch"],
             summary=result["summary"],
             files_changed=result["files_changed"],
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/chat", response_model=AgentChatResponse)
+async def agent_chat(
+    body: AgentChatRequest,
+    user: Annotated[User, Depends(get_current_user)],
+):
+    """Conversational chat with Claude. Returns content and optional patch."""
+    now = time.time()
+    _agent_requests[user.id] = [t for t in _agent_requests[user.id] if t > now - RATE_WINDOW]
+    if len(_agent_requests[user.id]) >= RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    _agent_requests[user.id].append(now)
+
+    token = get_github_token(user)
+    if not token:
+        raise HTTPException(status_code=401, detail="GitHub token not found")
+
+    parts = body.repo.split("/", 1)
+    if len(parts) != 2:
+        raise HTTPException(status_code=400, detail="Invalid repo format")
+    owner, repo_name = parts[0], parts[1]
+
+    sha = await get_branch_sha(token, owner, repo_name, body.branch)
+    tree_data = await get_tree(token, owner, repo_name, sha)
+    repo_map = _format_tree(tree_data["tree"])
+
+    selected_files: dict[str, str] = {}
+    for path in tree_data["tree"][:30]:
+        if path.get("type") == "blob":
+            try:
+                fc = await get_file_content(token, owner, repo_name, path["path"], body.branch)
+                import base64
+                content = base64.b64decode(fc.get("content", "")).decode("utf-8", errors="replace")
+                selected_files[path["path"]] = content[:5000]
+            except Exception:
+                pass
+
+    history = [{"role": h.role, "content": h.content} for h in body.history]
+    try:
+        result = await chat(
+            api_key=body.claude_api_key,
+            repo_map=repo_map,
+            selected_files=selected_files,
+            message=body.message,
+            history=history,
+        )
+        return AgentChatResponse(
+            content=result["content"],
+            patch=result.get("patch"),
+            files_changed=result.get("files_changed", []),
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

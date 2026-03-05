@@ -127,3 +127,52 @@ async def generate_patch(
         "summary": summary,
         "files_changed": files_changed,
     }
+
+
+async def chat(
+    api_key: str,
+    repo_map: str,
+    selected_files: dict[str, str],
+    message: str,
+    history: list[dict[str, str]],
+) -> dict[str, Any]:
+    """Conversational chat with Claude. Returns content and optional patch."""
+    client = Anthropic(api_key=api_key)
+    context = ""
+    if repo_map:
+        context += f"## Repo structure\n{repo_map}\n\n"
+    if selected_files:
+        context += "## File contents for context\n"
+        for path, content in list(selected_files.items())[:10]:
+            context += f"### {path}\n```\n{content[:8000]}\n```\n\n"
+
+    messages = []
+    for h in history[-10:]:
+        messages.append({"role": h["role"], "content": h["content"]})
+    messages.append({"role": "user", "content": f"{context}\n\nUser: {message}"})
+
+    msg = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=8000,
+        system="You are a code assistant. When making code changes, output a unified diff in a ## PATCH section. Format: ## PLAN (bullets), ## PATCH (unified diff), ## SUMMARY.",
+        messages=messages,
+    )
+
+    text = ""
+    for block in msg.content:
+        if hasattr(block, "text"):
+            text += block.text
+
+    plan, patch, summary = parse_agent_response(text)
+    files_changed = []
+    for line in patch.split("\n"):
+        if line.startswith("--- ") or line.startswith("+++"):
+            path = line[4:].split("\t")[0].strip().replace("a/", "").replace("b/", "")
+            if path and path not in files_changed:
+                files_changed.append(path)
+
+    return {
+        "content": text,
+        "patch": patch if patch else None,
+        "files_changed": files_changed,
+    }

@@ -7,7 +7,7 @@ import {
   ViewStyle,
   TextStyle,
 } from "react-native";
-import { Colors, Spacing, Typography } from "@/lib/theme";
+import { colors, spacing } from "@/constants/theme";
 
 interface ButtonProps {
   title: string;
@@ -33,14 +33,14 @@ export const Button = ({
   const isSecondary = variant === "secondary";
 
   const backgroundColor = disabled
-    ? Colors.border
+    ? colors.border
     : isPrimary
-      ? Colors.primary
+      ? colors.primary
       : isDanger
-        ? Colors.danger
+        ? colors.danger
         : "transparent";
 
-  const textColor = disabled ? Colors.textMuted : isSecondary ? Colors.text : "#FFFFFF";
+  const textColor = disabled ? colors.muted : isSecondary ? colors.text : "#FFFFFF";
 
   return (
     <TouchableOpacity
@@ -65,8 +65,8 @@ export const Button = ({
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 48,
@@ -74,10 +74,10 @@ const styles = StyleSheet.create({
   },
   secondaryBorder: {
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
   },
   text: {
-    fontSize: Typography.size.md,
+    fontSize: 16,
     fontWeight: "600",
   },
   disabled: {

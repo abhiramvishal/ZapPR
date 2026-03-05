@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Colors, Spacing, Typography } from "@/lib/theme";
+import { colors, spacing } from "@/constants/theme";
 
 interface RepoCardProps {
   name: string;
@@ -23,41 +23,41 @@ export const RepoCard = ({ name, fullName, isPrivate, onPress }: RepoCardProps) 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 12,
-    padding: Spacing.lg,
-    marginBottom: Spacing.sm,
+    padding: spacing.lg,
+    marginBottom: spacing.sm,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: Spacing.xs,
+    marginBottom: spacing.xs,
   },
   name: {
-    color: Colors.text,
-    fontSize: Typography.size.lg,
+    color: colors.text,
+    fontSize: 17,
     fontWeight: "600",
     flex: 1,
   },
   badge: {
-    backgroundColor: `${Colors.primary}20`,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    backgroundColor: `${colors.primary}20`,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     borderRadius: 6,
   },
   badgePrivate: {
-    backgroundColor: `${Colors.warning}20`,
+    backgroundColor: `${colors.warning}20`,
   },
   badgeText: {
-    color: Colors.textMuted,
-    fontSize: Typography.size.xs,
+    color: colors.muted,
+    fontSize: 11,
     fontWeight: "500",
   },
   fullName: {
-    color: Colors.textMuted,
-    fontSize: Typography.size.sm,
+    color: colors.muted,
+    fontSize: 14,
   },
 });

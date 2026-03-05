@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { Colors, Spacing, Typography } from "@/lib/theme";
+import { colors, spacing, font } from "@/constants/theme";
 
 interface AgentMessageProps {
   content: string;
@@ -58,40 +58,40 @@ export const AgentMessage = ({ content, isUser, streaming }: AgentMessageProps) 
 const styles = StyleSheet.create({
   bubble: {
     maxWidth: "85%",
-    padding: Spacing.md,
+    padding: spacing.md,
     borderRadius: 12,
-    marginBottom: Spacing.sm,
+    marginBottom: spacing.sm,
   },
   userBubble: {
     alignSelf: "flex-end",
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   agentBubble: {
     alignSelf: "flex-start",
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
   },
   text: {
-    fontSize: Typography.size.md,
-    color: Colors.text,
+    fontSize: 16,
+    color: colors.text,
     lineHeight: 22,
   },
   userText: {
     color: "#FFFFFF",
   },
   codeBlock: {
-    backgroundColor: Colors.background,
-    padding: Spacing.md,
+    backgroundColor: colors.bg,
+    padding: spacing.md,
     borderRadius: 8,
-    marginTop: Spacing.sm,
+    marginTop: spacing.sm,
   },
   codeText: {
-    fontSize: Typography.size.sm,
-    color: Colors.text,
-    ...Typography.mono,
+    fontSize: 14,
+    color: colors.text,
+    fontFamily: font.mono,
   },
   cursor: {
-    color: Colors.primary,
+    color: colors.primary,
   },
 });

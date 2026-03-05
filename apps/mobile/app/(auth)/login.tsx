@@ -11,9 +11,9 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as SecureStore from "expo-secure-store";
-import { auth } from "@/lib/api";
-import { Colors, Spacing, Typography } from "@/lib/theme";
+import { useAuth } from "@/context/AuthContext";
+import { API_BASE, apiFetch } from "@/constants/api";
+import { colors, spacing } from "@/constants/theme";
 
 function parseRedirectUrl(url: string): { code?: string; state?: string } {
   try {
@@ -27,31 +27,37 @@ function parseRedirectUrl(url: string): { code?: string; state?: string } {
   }
 }
 
-export default function SignIn() {
+export default function Login() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
     setLoading(true);
     try {
       const redirectUri = Linking.createURL("auth/callback");
-      const { auth_url, code_verifier, state } = await auth.startOAuth(redirectUri);
-      const result = await WebBrowser.openAuthSessionAsync(auth_url, redirectUri);
+      const data = await apiFetch<{ auth_url: string; code_verifier: string; state: string }>(
+        `/auth/github/start?redirect_uri=${encodeURIComponent(redirectUri)}`
+      );
+
+      const result = await WebBrowser.openAuthSessionAsync(data.auth_url, redirectUri);
 
       if (result.type === "success" && result.url) {
-        const { code, state: returnedState } = parseRedirectUrl(result.url);
+        const { code } = parseRedirectUrl(result.url);
         if (code) {
-          const { access_token } = await auth.callback(code, code_verifier, returnedState ?? state, redirectUri);
-          await SecureStore.setItemAsync("jwt", access_token);
-          router.replace("/(tabs)/repos");
+          const cb = await apiFetch<{ user: { id: number; login: string; avatar_url?: string }; access_token: string }>(
+            `/auth/github/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(data.state)}&code_verifier=${encodeURIComponent(data.code_verifier)}&redirect_uri=${encodeURIComponent(redirectUri)}`
+          );
+          await login(cb.access_token, {
+            id: cb.user.id,
+            login: cb.user.login,
+            avatar_url: cb.user.avatar_url,
+          });
+          router.replace("/(app)/repos");
         } else {
           Alert.alert("Error", "No authorization code received");
         }
-      } else if (result.type === "cancel") {
-        // User cancelled - no alert needed
-      } else {
-        Alert.alert("Error", "Sign in failed");
       }
     } catch (e) {
       Alert.alert("Error", (e as Error).message);
@@ -65,9 +71,6 @@ export default function SignIn() {
       <View style={styles.content}>
         <Text style={styles.logo}>⚡ ZapPR</Text>
         <Text style={styles.subtitle}>Agentic Git Client</Text>
-        <Text style={styles.description}>
-          Generate patches, review diffs, and open PRs — all from your phone.
-        </Text>
         <TouchableOpacity
           style={styles.githubButton}
           onPress={handleSignIn}
@@ -83,6 +86,9 @@ export default function SignIn() {
             </>
           )}
         </TouchableOpacity>
+        <Text style={styles.hint}>
+          Dev: Add exp://YOUR_IP:8081/--/auth/callback to GitHub OAuth app
+        </Text>
       </View>
     </View>
   );
@@ -91,51 +97,41 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.bg,
     justifyContent: "center",
-    paddingHorizontal: Spacing.xxl,
+    paddingHorizontal: spacing.xl,
   },
-  content: {
-    alignItems: "center",
-  },
+  content: { alignItems: "center" },
   logo: {
-    fontSize: Typography.size.xxl,
+    fontSize: 28,
     fontWeight: "700",
-    color: Colors.text,
-    marginBottom: Spacing.sm,
+    color: colors.text,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: Typography.size.lg,
-    color: Colors.textMuted,
-    marginBottom: Spacing.lg,
-  },
-  description: {
-    fontSize: Typography.size.md,
-    color: Colors.textMuted,
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: Spacing.xxxxl,
+    fontSize: 17,
+    color: colors.muted,
+    marginBottom: spacing.xl,
   },
   githubButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xxl,
+    borderColor: colors.border,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
     borderRadius: 12,
     width: "100%",
-    gap: Spacing.sm,
+    gap: spacing.sm,
   },
-  githubIcon: {
-    color: Colors.text,
-    fontSize: 18,
-  },
-  githubText: {
-    color: Colors.text,
-    fontSize: Typography.size.md,
-    fontWeight: "600",
+  githubIcon: { color: colors.text, fontSize: 18 },
+  githubText: { color: colors.text, fontSize: 16, fontWeight: "600" },
+  hint: {
+    marginTop: spacing.xl,
+    fontSize: 11,
+    color: colors.muted,
+    textAlign: "center",
   },
 });

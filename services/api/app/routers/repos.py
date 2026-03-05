@@ -7,7 +7,16 @@ from app.crud import get_github_token
 from app.deps import get_current_user
 from app.database import get_db
 from app.models import User
-from app.schemas import BranchItem, CreateBranchRequest, FileContentResponse, RepoItem, TreeEntry, TreeResponse
+from app.schemas import (
+    BranchItem,
+    CreateBranchRequest,
+    FileContentResponse,
+    RepoCommitRequest,
+    RepoItem,
+    RepoPRRequest,
+    TreeEntry,
+    TreeResponse,
+)
 from app.services.github import (
     create_branch,
     get_branch_sha,
@@ -83,11 +92,13 @@ async def get_repo_tree(
     owner: str,
     repo: str,
     ref: str | None = None,
+    branch: str | None = None,
     user: Annotated[User, Depends(get_current_user)] = None,
 ):
     token = get_github_token(user)
     if not token:
         raise HTTPException(status_code=401, detail="GitHub token not found")
+    ref = ref or branch
     if not ref:
         ref = await get_default_branch(token, owner, repo)
     sha = await get_branch_sha(token, owner, repo, ref)
@@ -105,12 +116,63 @@ async def get_file(
     repo: str,
     path: str,
     ref: str | None = None,
+    branch: str | None = None,
     user: Annotated[User, Depends(get_current_user)] = None,
 ):
     token = get_github_token(user)
     if not token:
         raise HTTPException(status_code=401, detail="GitHub token not found")
+    ref = ref or branch
     fc = await get_file_content(token, owner, repo, path, ref)
     import base64
     content = base64.b64decode(fc.get("content", "")).decode("utf-8", errors="replace")
     return FileContentResponse(content=content, path=fc.get("path", path))
+
+
+@router.post("/repos/{owner}/{repo}/commit")
+async def repo_commit(
+    owner: str,
+    repo: str,
+    body: RepoCommitRequest,
+    user: Annotated[User, Depends(get_current_user)],
+):
+    """Commit patches to branch. Alias for /git/apply-and-commit."""
+    from app.services.github import apply_patch_and_commit
+    from app.services.patch_validator import validate_patch
+
+    token = get_github_token(user)
+    if not token:
+        raise HTTPException(status_code=401, detail="GitHub token not found")
+
+    patch = "\n".join(body.patches) if body.patches else ""
+    valid, msg, _ = validate_patch(patch)
+    if not valid:
+        raise HTTPException(status_code=400, detail=msg or "Patch validation failed")
+
+    try:
+        sha = await apply_patch_and_commit(token, owner, repo, body.branch, patch, body.message)
+        return {"commit_sha": sha, "branch": body.branch}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/repos/{owner}/{repo}/pr")
+async def repo_pr(
+    owner: str,
+    repo: str,
+    body: RepoPRRequest,
+    user: Annotated[User, Depends(get_current_user)],
+):
+    """Create PR. Alias for /git/pr."""
+    from app.services.github import create_pr, get_default_branch
+
+    token = get_github_token(user)
+    if not token:
+        raise HTTPException(status_code=401, detail="GitHub token not found")
+    base = body.base or await get_default_branch(token, owner, repo)
+    try:
+        pr_url = await create_pr(token, owner, repo, body.head, base, body.title, body.body)
+        pr_number = int(pr_url.rstrip("/").split("/")[-1]) if pr_url else 0
+        return {"pr_url": pr_url, "pr_number": pr_number}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
