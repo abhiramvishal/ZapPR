@@ -10,8 +10,12 @@ import {
   TextInput,
   Alert,
 } from "react-native";
-import { repos as reposApi, Branch } from "@/lib/api";
-import { useRepoStore } from "@/lib/store";
+import { Octicons } from "@expo/vector-icons";
+import { repos as reposApi, Branch } from "../../lib/api";
+import { useRepoStore } from "../../lib/store";
+import { Colors, Spacing, Typography } from "../../lib/theme";
+import { TerminalText } from "../../components/TerminalText";
+import { Button } from "../../components/Button";
 
 export default function BranchesScreen() {
   const router = useRouter();
@@ -56,40 +60,53 @@ export default function BranchesScreen() {
 
   if (!repo) return null;
 
-  const [owner, repoName] = repo.full_name.split("/");
-
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#22c55e" />
+        <ActivityIndicator size="small" color={Colors.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.createRow}>
+      <View style={styles.header}>
+        <TerminalText style={styles.headerTitle}>
+          {`> git branch --list (${repo.name})`}
+        </TerminalText>
+      </View>
+
+      <View style={styles.createBox}>
         <TextInput
           style={styles.input}
-          placeholder="New branch name"
-          placeholderTextColor="#71717a"
+          placeholder="New branch name..."
+          placeholderTextColor={Colors.textMuted}
           value={newBranchName}
           onChangeText={setNewBranchName}
           autoCapitalize="none"
+          autoCorrect={false}
         />
-        <TouchableOpacity
-          style={[styles.createBtn, creating && styles.disabled]}
+        <Button
+          title="Create"
           onPress={createBranch}
-          disabled={creating || !newBranchName.trim()}
-        >
-          <Text style={styles.createBtnText}>Create</Text>
-        </TouchableOpacity>
+          loading={creating}
+          disabled={!newBranchName.trim()}
+          variant="primary"
+          style={styles.createBtn}
+        />
       </View>
+
       <FlatList
         data={branches}
         keyExtractor={(b) => b.name}
+        contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.item} onPress={() => selectBranch(item)}>
+          <TouchableOpacity
+            style={styles.item}
+            onPress={() => selectBranch(item)}
+            activeOpacity={0.7}
+          >
+            <Octicons name="git-branch" size={14} color={Colors.textMuted} style={styles.icon} />
             <Text style={styles.name}>{item.name}</Text>
           </TouchableOpacity>
         )}
@@ -99,25 +116,58 @@ export default function BranchesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0a0a0a" },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0a0a0a" },
-  createRow: { flexDirection: "row", padding: 16, gap: 8 },
+  container: { flex: 1, backgroundColor: Colors.background },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background },
+  header: {
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  headerTitle: {
+    fontSize: Typography.size.sm,
+    color: Colors.success,
+  },
+  createBox: {
+    flexDirection: "row",
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    gap: Spacing.sm,
+  },
   input: {
     flex: 1,
-    backgroundColor: "#27272a",
-    color: "#fff",
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    color: Colors.text,
+    paddingHorizontal: Spacing.md,
+    height: 48,
+    fontFamily: "SpaceMono",
+    fontSize: Typography.size.md,
   },
   createBtn: {
-    backgroundColor: "#22c55e",
-    paddingHorizontal: 20,
-    justifyContent: "center",
-    borderRadius: 8,
+    height: 48,
+    paddingHorizontal: Spacing.lg,
   },
-  createBtnText: { color: "#fff", fontWeight: "600" },
-  disabled: { opacity: 0.6 },
-  item: { padding: 16, borderBottomWidth: 1, borderBottomColor: "#27272a" },
-  name: { color: "#fff", fontSize: 16 },
+  listContent: {
+    padding: Spacing.md,
+  },
+  item: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: Spacing.xs,
+  },
+  icon: {
+    marginRight: Spacing.md,
+  },
+  name: {
+    color: Colors.text,
+    fontSize: Typography.size.sm,
+    fontFamily: "SpaceMono",
+  },
 });

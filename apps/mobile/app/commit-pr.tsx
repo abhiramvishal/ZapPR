@@ -4,17 +4,20 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   Alert,
-  ActivityIndicator,
+  ScrollView,
 } from "react-native";
-import { git } from "@/lib/api";
-import { useRepoStore } from "@/lib/store";
+import { Octicons } from "@expo/vector-icons";
+import { git } from "../lib/api";
+import { useRepoStore } from "../lib/store";
+import { Colors, Spacing, Typography } from "../lib/theme";
+import { TerminalText } from "../components/TerminalText";
+import { Button } from "../components/Button";
 
 export default function CommitPRScreen() {
   const router = useRouter();
-  const { repo, branch, patch } = useRepoStore();
+  const { repo, branch, patch, filesChanged } = useRepoStore((s: any) => s);
   const [commitMessage, setCommitMessage] = useState("");
   const [prTitle, setPrTitle] = useState("");
   const [prBody, setPrBody] = useState("");
@@ -41,8 +44,8 @@ export default function CommitPRScreen() {
         title,
         body: prBody.trim() || undefined,
       });
-      Alert.alert("Success", `PR created: ${result.pr_url}`, [
-        { text: "OK", onPress: () => router.replace("/(tabs)/repos") },
+      Alert.alert("SHIP IT!", `PR successfully created: #${result.pr_number}`, [
+        { text: "DONE", onPress: () => router.replace("/(tabs)/repos") },
       ]);
     } catch (e) {
       Alert.alert("Error", (e as Error).message);
@@ -57,68 +60,148 @@ export default function CommitPRScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Commit message</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="feat: add new feature"
-        placeholderTextColor="#71717a"
-        value={commitMessage}
-        onChangeText={(t) => {
-          setCommitMessage(t);
-          if (!prTitle) setPrTitle(t);
-        }}
-      />
-      <Text style={styles.label}>PR title (optional)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Defaults to commit message"
-        placeholderTextColor="#71717a"
-        value={prTitle}
-        onChangeText={setPrTitle}
-      />
-      <Text style={styles.label}>PR description (optional)</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        placeholder="Additional PR description"
-        placeholderTextColor="#71717a"
-        value={prBody}
-        onChangeText={setPrBody}
-        multiline
-      />
-      <TouchableOpacity
-        style={[styles.submitBtn, loading && styles.disabled]}
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <TerminalText style={styles.headerTitle}>
+          {`> git commit -m "${commitMessage || "..."}"`}
+        </TerminalText>
+      </View>
+
+      <View style={styles.summaryBox}>
+        <View style={styles.summaryHeader}>
+          <Octicons name="file-diff" size={14} color={Colors.textMuted} />
+          <Text style={styles.summaryTitle}>STAGED CHANGES</Text>
+        </View>
+        {filesChanged.map((f: string, i: number) => (
+          <View key={i} style={styles.fileRow}>
+            <Text style={styles.fileStatus}>M</Text>
+            <Text style={styles.fileName}>{f}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.form}>
+        <Text style={styles.label}>COMMIT MESSAGE</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="feat: awesome new feature"
+          placeholderTextColor={Colors.textMuted}
+          value={commitMessage}
+          onChangeText={(t) => {
+            setCommitMessage(t);
+            if (!prTitle) setPrTitle(t);
+          }}
+          autoCorrect={false}
+        />
+
+        <Text style={styles.label}>PR TITLE (OPTIONAL)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Defaults to commit message"
+          placeholderTextColor={Colors.textMuted}
+          value={prTitle}
+          onChangeText={setPrTitle}
+          autoCorrect={false}
+        />
+
+        <Text style={styles.label}>PR DESCRIPTION (OPTIONAL)</Text>
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          placeholder="Detailed breakdown of changes..."
+          placeholderTextColor={Colors.textMuted}
+          value={prBody}
+          onChangeText={setPrBody}
+          multiline
+          autoCorrect={false}
+        />
+      </View>
+
+      <Button
+        title="Ship It"
         onPress={handleCommitAndPR}
+        loading={loading}
         disabled={loading || !commitMessage.trim()}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.submitBtnText}>Commit, Push & Create PR</Text>
-        )}
-      </TouchableOpacity>
-    </View>
+        style={styles.shipBtn}
+      />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#0a0a0a" },
-  label: { color: "#a1a1aa", fontSize: 14, marginTop: 16, marginBottom: 8 },
-  input: {
-    backgroundColor: "#27272a",
-    color: "#fff",
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
+  container: { flex: 1, backgroundColor: Colors.background },
+  content: { paddingBottom: Spacing.xxl },
+  header: {
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
-  textArea: { minHeight: 80, textAlignVertical: "top" },
-  submitBtn: {
-    backgroundColor: "#22c55e",
-    padding: 16,
-    borderRadius: 8,
+  headerTitle: {
+    fontSize: Typography.size.sm,
+    color: Colors.success,
+  },
+  summaryBox: {
+    margin: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+  },
+  summaryHeader: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 24,
+    marginBottom: Spacing.sm,
+    opacity: 0.6,
   },
-  submitBtnText: { color: "#fff", fontWeight: "600", fontSize: 16 },
-  disabled: { opacity: 0.6 },
+  summaryTitle: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: Colors.text,
+    marginLeft: 6,
+    letterSpacing: 1,
+  },
+  fileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  fileStatus: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    color: Colors.warning,
+    width: 20,
+  },
+  fileName: {
+    fontFamily: "SpaceMono",
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  form: {
+    paddingHorizontal: Spacing.md,
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: Colors.textMuted,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.xs,
+    letterSpacing: 0.5,
+  },
+  input: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    color: Colors.text,
+    padding: Spacing.md,
+    fontFamily: "SpaceMono",
+    fontSize: Typography.size.md,
+  },
+  textArea: {
+    minHeight: 100,
+  },
+  shipBtn: {
+    margin: Spacing.md,
+    marginTop: Spacing.xl,
+    backgroundColor: Colors.accent,
+  },
 });
