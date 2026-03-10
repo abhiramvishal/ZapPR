@@ -63,7 +63,11 @@ export default function Login() {
         }
       }
     } catch (e) {
-      Alert.alert("Error", (e as Error).message);
+      const msg = (e as Error).message;
+      const hint = msg === "Network request failed"
+        ? `Cannot reach API at ${API_BASE}. On a physical device, use your computer's LAN IP (e.g. http://192.168.1.x:8000) in .env.local, not localhost.`
+        : msg;
+      Alert.alert("Error", hint);
     } finally {
       setLoading(false);
     }
@@ -90,9 +94,8 @@ export default function Login() {
           )}
         </TouchableOpacity>
         <Text style={styles.hint}>
-          GitHub OAuth: Add redirect URI:{'\n'}
-          Expo Go: exp://YOUR_IP:8081/--/auth/callback{'\n'}
-          Standalone: zappr://auth/callback
+          API: {API_BASE}{'\n'}
+          GitHub OAuth: exp://YOUR_IP:8081/--/auth/callback
         </Text>
       </View>
     </View>

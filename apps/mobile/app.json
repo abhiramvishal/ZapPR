@@ -1,10 +1,10 @@
 {
   "expo": {
     "name": "ZapPR",
-    "slug": "zappr",
+    "slug": "zappr-mobile",
     "scheme": "zappr",
     "version": "1.0.0",
-    "owner": "YOUR_EXPO_USERNAME",
+    "owner": "abhiramvishal",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -13,7 +13,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#0D0F12"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.zappr.app"
@@ -25,12 +27,23 @@
       },
       "package": "com.zappr.app"
     },
-    "plugins": ["expo-router", "expo-secure-store"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
     "updates": {
       "url": "https://u.expo.dev/YOUR_PROJECT_ID"
     },
     "runtimeVersion": {
       "policy": "sdkVersion"
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "89f98d90-968f-4ede-93be-7b72fd699df4"
+      }
     }
   }
 }
